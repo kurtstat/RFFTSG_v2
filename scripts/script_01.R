@@ -1,5 +1,5 @@
 
-# Case Study No. 1 - The High Street Barbershop Theory of ED Lengt --------
+# Case Study No. 1 - The Barbershop Theory of ED Delays -------------------
 
 
 # Step 0 - load the packages ----------------------------------------------
@@ -27,7 +27,7 @@ df_unique_arrival_times <-
   arrange(unique_arrival_datetime)
 
 
-# Step 3 - find the ED fullness values for each unique arrival dat --------
+# Step 3 - find the ED fullness values for each unique arrival time -------
 
 df_ed_fullness_values <-
   df_unique_arrival_times |> 
@@ -38,7 +38,7 @@ df_ed_fullness_values <-
   summarize(ed_fullness = n())
 
 
-# Step 4 - find the mean ED los_mins values for each unique_arriva --------
+# Step 4 - find the mean ED los_mins values for each unique arrival time --
 
 df_ed_mean_los_mins <-
   df_ed_duration_extract |> 
@@ -85,13 +85,22 @@ ggplot(data = df_final_x) +
              fill = "yellow",
              colour = "black",
              alpha = 0.7) +
+  geom_smooth(data = df_final_x |> 
+              filter(ed_fullness < 36),
+                method = lm, 
+              se = FALSE, 
+              colour ="blue",
+              linetype = "dashed",
+              linewidth = 0.9) +
   scale_x_continuous(limits = c(0, 60),
                      breaks = seq(0, 60, 10)) +
   scale_y_continuous(limits = c(120, 240),
                      breaks = seq(120, 240, 15)) +
-  labs(title = "The High Street Barbershop Theory",
+  labs(title = "The Barbershop Theory of ED Delay",
        subtitle = "The fuller the ED on arrival, the longer the ED length of stay",
        x = "No. of patients in ED on arrival",
        y = "Length of stay in ED (mins)") +
   theme_minimal() +
-  theme(legend.position = "none")
+  theme(legend.position = "none") +
+  theme(panel.grid.minor.x = element_blank(),
+        panel.grid.minor.y = element_blank())

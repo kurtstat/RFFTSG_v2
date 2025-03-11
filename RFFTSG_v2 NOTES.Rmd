@@ -1,0 +1,79 @@
+---
+title: "RFFTSG v2"
+author: "Neil Pettinger"
+date: "2025-03-11"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Case Study No. 1
+# The Barbershop Theory of Emergency Department Delays
+
+We know - from the second case study in the R Foundation Level 1 course - that Emergency Department (ED) four-hour performance is related to the fullness – the crowding – of the ED
+
+But the scatterplot that we drew in RFASS Case Study No. 2 is a bit broad brush, a bit scattergun. It's just 364 dots – each dot is a day – and the fullness of the ED can change a lot in the course of a day. And four-hour performance can also change a lot in the course of day
+
+Therefore I wondered if we could drill down into the granular detail of these 364 days – and the 57,406 ED attendances that took place over the course of those 364 days. Instead of looking at the *average* fullness each day, and the *average* four-hour performance each day, we’ll look instead at the *exact* fullness each time a patient arrived. So we’re going to take 57,406 retrospective fullness snapshots. (Well, actually, we're only going to take 56,100 retrospective fullness snapshots becuase there were occasions when patients arrived at the ED at the exact same moment.) And then we’re going to look at the *exact* eventual ED length of stay of each patient.
+
+```{r message=FALSE, warning=FALSE}
+
+# Step 0 - load the packages ----------------------------------------------
+
+library(readxl)
+library(tidyverse)
+```
+
+The file we'll be using is a .xlsx file that you've already saved into your data folder. That's why we'll need the {readxl} package. The {tidyverse} package is just a constant for everything we do!
+
+```{r message=FALSE, warning=FALSE}
+
+# Step 1 - import the data ------------------------------------------------
+
+df_ed_duration_extract <-
+  read_xlsx("data/01_ed_duration_extract.xlsx")
+```
+
+If this code runs correctly, you should end up with 57,406 observations. These are the ED attendances that took place at Anytown General Hospital during the 52-week (364-day) period Monday 29 September 2014 to Sunday 27 September 2015.
+
+The first proper meaningful thing we're going to do is create a dataframe containing all of the unique ED arrival datetimes. I say "unique" advisedly, because a small number of ED attendances arrived at the same minute.
+
+Here's the code that gets us the list of unique arrival times:
+```{r message=FALSE, warning=FALSE}
+
+# Step 2 - create a dataframe of unique arrival_datetimes -----------------
+
+df_unique_arrival_times <-
+  df_ed_duration_extract |> 
+  filter(arrival_datetime >= as.POSIXct('2014-09-29 00:00',
+                                            tz = "UTC")) |> 
+  group_by(arrival_datetime) |> 
+  summarize(no_of_attendances = n()) |> 
+  rename(unique_arrival_datetime = arrival_datetime) |> 
+  select(unique_arrival_datetime) |> 
+  arrange(unique_arrival_datetime)
+```
+
+When you run this code chunk, you should end up with a dataframe (called df_unique_arrival_times) that contains 56,100 variables. These are the *unique* arrival times. And you can see that we got there from 57,406 *non*-unique arrival times with the group_by() line.
+
+Having got to a dataframe with 56,100 rows, we then re-named the variable **unique_arrival_datetime** to emphasize what we've done.
+
+OK, the next step is to find out how full of patients the ED was for each of these 56,100 arrival times. Here's teh code for that:
+
+```{r message=FALSE, warning=FALSE}
+
+# Step 3 - find the ED fullness values for each unique arrival time -------
+
+df_ed_fullness_values <-
+  df_unique_arrival_times |> 
+  left_join(df_ed_duration_extract,
+            join_by(unique_arrival_datetime >= arrival_datetime,
+                    unique_arrival_datetime < departure_datetime)) |> 
+  group_by(unique_arrival_datetime) |> 
+  summarize(ed_fullness = n())
+
+```
+
+It's a join() - a left_join() - so we need to be clear about we're doing here. 
