@@ -41,6 +41,7 @@ If this code runs correctly, you should end up with 57,406 observations. These a
 The first proper meaningful thing we're going to do is create a dataframe containing all of the unique ED arrival datetimes. I say "unique" advisedly, because a small number of ED attendances arrived at the same minute.
 
 Here's the code that gets us the list of unique arrival times:
+
 ```{r message=FALSE, warning=FALSE}
 
 # Step 2 - create a dataframe of unique arrival_datetimes -----------------
@@ -76,4 +77,51 @@ df_ed_fullness_values <-
 
 ```
 
-It's a join() - a left_join() - so we need to be clear about we're doing here. 
+It's a join() - a left_join() - so we need to be clear about we're doing here.
+
+We're starting with the df_unique_arrival_times dataframe - this is the one we created in Step 2. To visualize the join, think of this as "the table on the left".
+
+The left_join() function introduces "the table on the right". This is the dataframe we imported in Step 1. It contains all of the ED attendances that overlapped the 364-day period. (By 'overlapped', I mean that the dataframe includes patients who arrived *before* Monday 29 September 2014 and patients who departed *after* Sunday 27 September 2015).
+
+Now for the join itself. And it's a non-equi join. In the plainest English I can muster, this is what we are doing: we are asking R to compare the unique_arrival_datetimes from the df_unique_arrival_times dataframe with the arrival_datetimes from teh df_ed_duration extract and to extracyt then when the first is greater than or equal to teh second. 
+
+In other words, if the patient arrived eitehr before or bang on the unique arrival time, iclude it.
+
+But we're not finished becuase there are two parts to teh non-equi join.The second part looks at the departure datetime of each ED attendance and compares it to the unique_arrival_datetimes. When it is greater than the unique arrival time, then it is to be included.
+
+Boyh of the non-equi conditions need to be met in order for the join to hapen.
+
+If we run this code chink at the end of the left_join() line (i.e. before we do the group_by(), we'll get a dataframe with a lot of variables. 1,332,037 to be exact! A varibale for every ED occupied bed minute in the 364 day period. So if there were - on average - 23.7 patients in the departemtn, then that large number is basically 23.7 multiplied by he number of unique arrival times: 23.7 x 56,100 = 1,332,037.
+
+But we tehn go on to group this data to make the dataferam much more manageable.
+
+The next step is to calculate the average klength of stay in the ED for each of the uniquearrval times. Note that in the vast majority of cass the vaues we'll be getting here will be single pateimt vlaus. If the time is 2014-09-29 00:57:00 (the ifrst time in the chronological list) and only one patient arrived at that time, then the length of stay fogure we are lookingfor is that patient's eventual ED length of saty.
+
+But for those (rare) occasions when more than ne patient arried atteh D simultaneously (or in the same minute, at any rate), then we will need to calucalte teh avearge length of saty int eh ED.
+
+```{r message=FALSE, warning=FALSE}
+
+# Step 4 - find the mean ED los_mins values for each unique arrival time --
+
+df_ed_mean_los_mins <-
+  df_ed_duration_extract |> 
+  filter(arrival_datetime >= as.POSIXct('2014-09-29 00:00',
+                                        tz = "UTC")) |> 
+  group_by(arrival_datetime) |> 
+  summarize(mean_ed_los_mins = mean(los_mins))
+
+```
+
+The next thing we need to do is join the mean_los datafram to the fullness values daatframe.
+
+```{r message=FALSE, warning=FALSE}
+
+# Step 5 - join the ED los_mins values to the ED_fullness values ----------
+
+df_final <-
+  df_ed_fullness_values |> 
+  left_join(df_ed_mean_los_mins,
+            join_by(unique_arrival_datetime == arrival_datetime))
+
+```
+
