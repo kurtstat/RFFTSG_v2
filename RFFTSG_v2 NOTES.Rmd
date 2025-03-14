@@ -125,3 +125,84 @@ df_final <-
 
 ```
 
+This is a straightforward join. Both of the dataframes are of equal length (56,100 rows). We;re simply appening the mean length of stay values to the ED fullnes vlaues.
+
+The tabel we've now got is good enough to create a grpah from.And we will do that. But - be warned! - it will be a very big graph, 56,100 pairs of x, y coordinates! It might take R a few seconds to do this...
+
+```{r message=FALSE, warning=FALSE}
+
+# Step 6 - draw a massive scatterplot -------------------------------------
+
+ggplot(data = df_final) +
+  aes(x = ed_fullness,
+      y = mean_ed_los_mins) +
+  geom_point(alpha = 0.1) +
+  scale_y_continuous(limits = c(0, 1440),
+                     breaks = seq(0, 1440, 180))
+
+```
+
+There is a limit to hiow useful we can find this scatterplot. There is - actually - just abot - a pattern that's discernble. The fuller the ED, the longer, the length fo saty. But ther eare so many data points that it;sreally just a bit of a mess,
+
+So, to remedy his, we'll go back to df_final and summarize it:
+
+```{r message=FALSE, warning=FALSE}
+
+# Step 7 - summarize the df_final data ------------------------------------
+
+df_final_x <-
+  df_final |> 
+  group_by(ed_fullness) |> 
+  summarize(mean_ed_los_mins = mean(mean_ed_los_mins),
+            no_of_arrivals = n())
+```
+
+What we've done here is create a summary of df_final (which we've called df_final_x) which gives us - for ewach level of ED fullness that was encoutnered by patienst arriving (from a low value of 1 to a high level of 57)
+
+
+The final step is to draw a bubbleplot of this summary table:
+
+```{r message=FALSE, warning=FALSE}
+
+# Step 8 - draw a bubbleplot using the summarized data --------------------
+
+ggplot(data = df_final_x) +
+  aes(x = ed_fullness,
+      y = mean_ed_los_mins,
+      size = no_of_arrivals) +
+  geom_point(pch = 21,
+             fill = "yellow",
+             colour = "black",
+             alpha = 0.7) +
+  geom_smooth(data = df_final_x |> 
+              filter(ed_fullness < 60),
+                method = lm, 
+              se = FALSE, 
+              colour ="black",
+              linetype = "dotted",
+              linewidth = 0.9) +
+  scale_x_continuous(limits = c(0, 60),
+                     breaks = seq(0, 60, 10)) +
+  scale_y_continuous(limits = c(120, 240),
+                     breaks = seq(120, 240, 15)) +
+  labs(title = "The Barbershop Theory of ED Delays",
+       subtitle = "The fuller the ED on arrival, the longer the ED length of stay",
+       x = "No. of patients in ED on arrival",
+       y = "Length of stay in ED (mins)") +
+  theme_minimal() +
+  theme(legend.position = "none") +
+  theme(panel.grid.minor.x = element_blank(),
+        panel.grid.minor.y = element_blank(),
+        plot.margin = unit(c(0.5,0.5,0.5,0.5), "cm"))
+
+```
+
+There's quite a lot of code here, and we won;t implelenmt all of it at once.
+
+## Case Study No. 2
+# A day in the life of an Emergency Department
+
+If the first case study helped us understand the relationship between the fullness of an ED and the length fo stay that's lilely to result from a particular level of fullness, then this second case study drills right down to see exactly what ED fullness looks like.
+
+The fullness of an ED varies a lot as we go through the day
+
