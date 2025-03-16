@@ -6,7 +6,6 @@
 
 library(readxl)
 library(tidyverse)
-library(patchwork)
 library(ggtext)
 
 
@@ -57,7 +56,7 @@ df_amu_stays_c <-
 
 summary_amu_stays_cons <-
   df_amu_stays_c |> 
-  group_by(anon_cons_code) |> 
+  group_by(alpha_code) |> 
   summarize(q1_stays = sum(if_else(amu_end_quarter == "q1", 1, 0)),
             q4_stays = sum(if_else(amu_end_quarter == "q4", 1, 0)),
             include = if_else(q1_stays > 50 & q4_stays > 50,"include", "exclude"))
@@ -68,49 +67,77 @@ summary_amu_stays_cons <-
 df_amu_stays_d <-
   df_amu_stays_c |> 
   left_join(summary_amu_stays_cons,
-            join_by(anon_cons_code == anon_cons_code)) |> 
+            join_by(alpha_code == alpha_code)) |> 
   filter(include == "include") |> 
   select(anon_id,
-         anon_cons_code,
+         alpha_code,
          amu_los_hours,
-         amu_end_quarter)
+         amu_end_quarter) |> 
+  filter(alpha_code != "Consultant 147")
 
 
-# Step 8 - prepare the summary table for plotting -------------------------
+# Step 8a - prepare the q1 summary table for plotting ------------------------
+
+summary_amu_stays_plot_q1 <-
+  df_amu_stays_d |> 
+  filter(amu_end_quarter == "q1") |> 
+  group_by(alpha_code) |> 
+  summarize(alos_q1 = mean(amu_los_hours))
+  
+
+# Step 8b - prepare the q4 summary table for plotting ------------------------
+
+summary_amu_stays_plot_q4 <-
+  df_amu_stays_d |> 
+  filter(amu_end_quarter == "q4") |> 
+  group_by(alpha_code) |> 
+  summarize(alos_q4 = mean(amu_los_hours))
+
+
+# Step 9 - join the two summary tables together ---------------------------
 
 summary_amu_stays_plot <-
-  df_amu_stays_d |> 
-  group_by(anon_cons_code,
-           amu_end_quarter) |> 
-  summarize(no_of_stays = n(),
-            alos = mean(amu_los_hours),
-            sd = sd(amu_los_hours)) |> 
-  filter(anon_cons_code != "cons_147")
+  summary_amu_stays_plot_q1 |> 
+  left_join(summary_amu_stays_plot_q4,
+            join_by(alpha_code == alpha_code)) |> 
+  mutate(los_diff = alos_q4 - alos_q1)
 
 
-# Step 9 - draw the plot --------------------------------------------------
-
-summary_amu_stays_plot %>% 
-  ggplot(aes(x = alos,
-             y = anon_cons_code)) +
-  geom_line(aes(group = anon_cons_code), 
-            colour = "#E7E7E7", 
-            linewidth = 3.5) +
-  geom_point(aes(colour = amu_end_quarter), 
-             size = 3) +
-  scale_colour_manual(values=c("#436685", "#BF2F24")) +
-  scale_x_continuous(limits = c(12, 48),
-                     breaks = seq(12, 48, 6)) +
-  labs(title = "AMU length of stay was lower in <span style='color: #BF2F24;'>Q4</span> than in <span style='color: #436685;'>Q1</span>",
-       subtitle = "13 consultant physicians at Anytown General Hospital: 2014-15",
-       x = "Average length of stay in AMU (hours)",
-       y = "") +
+# Step 10 - draw the plot -------------------------------------------------
+ggplot(data = summary_amu_stays_plot) +
+  aes(y = reorder(alpha_code,
+                  los_diff)) +
+  geom_segment(aes(x = alos_q1, xend = alos_q4,
+                   y = alpha_code, yend = alpha_code),
+               color = "#E7E7E7", 
+               linewidth = 3.5) +
+  geom_point(aes(x = alos_q1),
+             size = 3,
+             colour = "#436685") +
+  geom_point(aes(x = alos_q4),
+             size = 3,
+             colour = "#BF2F24") +
+  scale_x_continuous(limits = c(18, 42),
+                     breaks = seq(18, 42, 6)) +
+  labs(title = "Acute Medical Unit (AMU) length of stay reduced  \nbetween <span style='color: #436685;'>Q1</span> and <span style='color: #BF2F24;'>Q4</span>, but some consultants  \nachieved bigger reductions than others",
+       subtitle = "Average length of AMU stay (hours)",
+       x = "",
+       y = " \nConsultant") +
   theme_minimal() +
   theme(legend.position = "none",
-        panel.grid = element_blank(),
+        axis.title.y = element_blank(),
         plot.title = element_markdown(size=14, face = "bold"),
-        plot.subtitle = element_text(size=10),
-        axis.text = element_text(colour = "black",
-                                 size = 9),
-        axis.title = element_text(size = 9),
-        plot.margin = margin(0.5,0.5,0.5,0.5, "cm"))
+        plot.subtitle = element_text(size=10,
+                                     colour = "#5F5F5F"),
+        axis.title=element_text(size=10,
+                                colour = "#5F5F5F"),
+        axis.text = element_text(size = 10,
+                                 colour = "#5F5F5F"),
+        panel.grid.major.x = element_blank(),
+        panel.grid.major.y = element_line(color = "lightgrey",
+                                          size = 0.5,
+                                          linetype = 3),
+        panel.grid.minor.x = element_blank(),
+        panel.grid.minor.y = element_blank(),
+        plot.margin = unit(c(0.5,0.5,0.5,0.5), "cm")) +
+  coord_flip()

@@ -35,7 +35,8 @@ df_ed_fullness_values <-
             join_by(unique_arrival_datetime >= arrival_datetime,
                     unique_arrival_datetime < departure_datetime)) |> 
   group_by(unique_arrival_datetime) |> 
-  summarize(ed_fullness = n())
+  summarize(ed_fullness = n()) |> 
+  arrange(ed_fullness)
 
 
 # Step 4 - find the mean ED los_mins values for each unique arrival time --
@@ -86,21 +87,24 @@ ggplot(data = df_final_x) +
              colour = "black",
              alpha = 0.7) +
   geom_smooth(data = df_final_x |> 
-              filter(ed_fullness < 36),
+              filter(ed_fullness < 60),
                 method = lm, 
               se = FALSE, 
-              colour ="blue",
-              linetype = "dashed",
+              colour ="black",
+              linetype = "dotted",
               linewidth = 0.9) +
   scale_x_continuous(limits = c(0, 60),
                      breaks = seq(0, 60, 10)) +
   scale_y_continuous(limits = c(120, 240),
                      breaks = seq(120, 240, 15)) +
-  labs(title = "The Barbershop Theory of ED Delay",
+  labs(title = "The Barbershop Theory of ED Delays",
        subtitle = "The fuller the ED on arrival, the longer the ED length of stay",
        x = "No. of patients in ED on arrival",
        y = "Length of stay in ED (mins)") +
   theme_minimal() +
   theme(legend.position = "none") +
   theme(panel.grid.minor.x = element_blank(),
-        panel.grid.minor.y = element_blank())
+        panel.grid.minor.y = element_blank(),
+        plot.margin = unit(c(0.5,0.5,0.5,0.5), "cm"))
+
+        
