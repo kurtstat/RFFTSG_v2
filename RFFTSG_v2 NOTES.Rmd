@@ -14,9 +14,15 @@ knitr::opts_chunk$set(echo = TRUE)
 
 We know - from the second case study in the R Foundation Level 1 course - that Emergency Department (ED) four-hour performance is related to the fullness – the crowding – of the ED
 
-But the scatterplot that we drew in RFASS Case Study No. 2 is a bit broad brush, a bit scattergun. It's just 364 dots – each dot is a day – and the fullness of the ED can change a lot in the course of a day. And four-hour performance can also change a lot in the course of day
+But the scatterplot that we drew in RFASS Case Study No. 2...
 
-Therefore I wondered if we could drill down into the granular detail of these 364 days – and the 57,406 ED attendances that took place over the course of those 364 days. Instead of looking at the *average* fullness each day, and the *average* four-hour performance each day, we’ll look instead at the *exact* fullness each time a patient arrived. So we’re going to take 57,406 retrospective fullness snapshots. (Well, actually, we're only going to take 56,100 retrospective fullness snapshots becuase there were occasions when patients arrived at the ED at the exact same moment.) And then we’re going to look at the *exact* eventual ED length of stay of each patient.
+```{r echo=FALSE, message=FALSE, warning=FALSE, out.width = '50%'}
+knitr::include_graphics("rfass_case_study_2_fullness_compliance_scatterplot.png")
+```
+
+...is a bit broad brush. It's 364 dots – each dot is a day – and the fullness of the ED can change a lot in the course of a day. Moreover, four-hour performance can *also* change a lot in the course of day
+
+Therefore I wondered if we could drill down into the granular detail of these 364 days. Instead of looking at the *average* fullness each day, and the *average* four-hour performance each day, we’ll look instead at the *exact* fullness each time a patient arrived. So we’re going to take 57,406 retrospective fullness snapshots. (Well, actually, we're only going to take 56,100 retrospective fullness snapshots because there were occasions when more than one patient arrived at the ED in the same minute.) And then we’re going to look at the *exact* eventual ED length of stay of each patient.
 
 ```{r message=FALSE, warning=FALSE}
 
@@ -26,7 +32,7 @@ library(readxl)
 library(tidyverse)
 ```
 
-The file we'll be using is a .xlsx file that should already have saved into the data folder of your project. Because it's an .xlsx file, we'll need the {readxl} package. 
+The file we'll be using is a .xlsx file that should already have been saved into the data folder of your project. Because it's an .xlsx file, we'll need the {readxl} package to import it. 
 
 The {tidyverse} package is just a constant for pretty much everything we do!
 
@@ -40,7 +46,7 @@ df_ed_duration_extract <-
 
 If this code runs correctly, you should end up with a dataframe called **df_ed_duration_extract** containing 57,406 observations. These observations are the Emergency Department (ED) attendances that took place at Anytown General Hospital during the 52-week (364-day) period Monday 29 September 2014 to Sunday 27 September 2015.
 
-The first thing we're going to do is create a dataframe containing all of the *unique* ED arrival datetimes. I'm using the word "unique" advisedly here, because a small number of ED attendances arrived simultaneously - at the same minute.
+The first thing we're going to do is create a dataframe containing all of the *unique* ED arrival datetimes. I'm using the word *unique* advisedly here, because - as I've already mentioned - a small number of ED attendances arrived simultaneously - at the same minute.
 
 Here's the code that gets us the list of *unique* arrival times:
 
@@ -59,9 +65,9 @@ df_unique_arrival_times <-
   arrange(unique_arrival_datetime)
 ```
 
-When you run this code chunk, you should end up with a dataframe (called **df_unique_arrival_times**) that contains 56,100 variables. These are the *unique* arrival times. And you can see that we got there from 57,406 *non*-unique arrival times with the group_by() line.
+When you run this code chunk, you should end up with a dataframe (called **df_unique_arrival_times**) that contains 56,100 variables. These are the *unique* arrival times. And you can see that we got there from 57,406 *non*-unique arrival times by using the group_by() line.
 
-Having got to a dataframe with 56,100 rows, we then re-named the variable **unique_arrival_datetime** to emphasize to ourselves what we've done.
+Having got to a dataframe with 56,100 rows, we then re-named the **arrival_datetime** variable as **unique_arrival_datetime** to emphasize to ourselves what we've done.
 
 The next step is to find out how full of patients the ED was for each of these 56,100 unique arrival times. Here's the code for that:
 
@@ -95,9 +101,9 @@ Both of the non-equi conditions need to be met in order for the join to give us 
 
 If we run this code chunk at the end of the left_join() line (i.e. before we do the group_by(), we'll get a dataframe with a *lot* of variables. 1,274,714 to be exact! A variable for every ED 'occupied bed minute' in the 364 day period. If you divide this large number by 56,100 (the number of snapshot minutes), then you get a figure of 22.7, which is - roughly - the average number of patients in the ED over the course of the 364-day period.
 
-But we then go on to *group* this data to make the dataframe much more manageable.
+But we then go on to *group* this data to make the dataframe much more intelligible.
 
-The next step is to calculate the average length of stay in the ED for each of the unique arrval times. Note that in the vast majority of cases the length of stay values we'll be getting here will be single patient values. For example, if the time is 2014-09-29 00:57:00 (the first time in the chronological list), and only one patient arrived at that particular time, then the length of stay figure we are looking for is that specific patient's eventual ED length of stay.
+The next step in the case study 'process' is to calculate the average length of stay in the ED for each of the unique arrival times. Note that in the vast majority of cases, the length of stay values we'll be getting here will be single patient values. For example, if the time is 2014-09-29 00:57:00 (the first time in the chronological list), and only one patient arrived at that particular time, then the length of stay figure we are looking for is that specific patient's eventual ED length of stay.
 
 But on those (rare) occasions when more than one patient arrived at the ED simultaneously (or in the same minute, at any rate), then we will need to calculate the average eventual length of stay in the ED.
 
@@ -144,9 +150,9 @@ ggplot(data = df_final) +
 
 ```
 
-There is a limit to how useful we can find this scatterplot. There is - actually - just about - a pattern that's discernible: the fuller the ED, the longer the length of stay. But there are so many data points that it's really just a bit of a mess!
+There is a limit to how useful we can find this scatterplot. There is - actually - just about... - a pattern that's discernible: the fuller the ED, the longer the length of stay. But there are so many data points that it's really just a bit of a crowded mess!
 
-So, to remedy this, we'll go back to **df_final** and summarize it:
+So, to remedy this, we'll go back to the **df_final** dataframe and summarize it:
 
 ```{r message=FALSE, warning=FALSE}
 
@@ -199,13 +205,14 @@ ggplot(data = df_final_x) +
 
 ```
 
----
-
 There's quite a lot of code here, and we won't implement all of it at once. The key points are:
 
 1. The ggplot() call makes it clear that we're going to be drawing a plot and that the data we'll be using will be **df_final_x**
 2. The aes() call specifies three attributes: the x-axis, the y-axis and the variable that will determine the size of the dots.
 3. The geom_point() call specifies the geometric object. We want a scatterplot.
+4. The geom_smooth() call is the bit that draw the trendline
+
+---
 
 ## Case Study No. 2
 # ED fullness minute by minute
@@ -232,7 +239,7 @@ To create the raw data dataframe, use the following code:
 # Step 1 - import the data ------------------------------------------------
 
 df_ed_day <-
-  read.xlsx("https://www.kurtosis.co.uk/data/01_ed_duration_extract.xlsx") |> 
+  read.xlsx("https://www.kurtosis.co.uk/data/02_ed_duration_extract.xlsx") |> 
   mutate(new_arrival_datetime = convertToDateTime(arrival_datetime)) |> 
   mutate(new_departure_datetime = convertToDateTime(departure_datetime)) |>filter(new_arrival_datetime <= as.POSIXct('2015-07-09 23:59',
                                         tz = "UTC")) |> 
@@ -370,7 +377,7 @@ First of all, let's load the packages we'll need:
 
 # Step 0 - load the packages ----------------------------------------------
 
-library(readxl)
+library(openxlsx)
 library(tidyverse)
 library(ggtext)
 
@@ -383,11 +390,17 @@ Next, we'll import the data:
 # Step 1 - import the data ------------------------------------------------
 
 df_amu_stays <-
-  read_xlsx("data/03_amu_stays.xlsx")
-
+  read.xlsx("http://www.kurtosis.co.uk/data/03_amu_stays.xlsx") |> 
+  mutate(new_amu_start_datetime = convertToDateTime(amu_start_datetime)) |> 
+  mutate(new_amu_end_datetime = convertToDateTime(amu_end_datetime)) |>
+  select(anon_id,
+         alpha_code,
+         new_amu_start_datetime,
+         new_amu_end_datetime,
+         amu_los_hours)
 ```
 
-Next, we'll 'clean' the data by 'deleting' any improbably long AMU stays:
+Next, we'll 'clean' the data by 'deleting' any improbably long AMU stays. This should take us from 11,079 observations down to 10,901 observations:
 
 ```{r message=FALSE, warning=FALSE}
 
@@ -410,13 +423,13 @@ The next step is to append a 'quarter' variable to the dataframe. Our ultimate a
 
 df_amu_stays_b <-
   df_amu_stays_a |> 
-  mutate(amu_end_quarter = case_when(amu_end_datetime <= '2014-12-28 23:59' ~ "q1",
-                                     amu_end_datetime > '2014-12-28 23:59' 
-                                     & amu_end_datetime <= '2015-03-29 23:59' ~ "q2",
-                                     amu_end_datetime > '2015-03-29 23:59' 
-                                     & amu_end_datetime <= '2015-06-28 23:59' ~ "q3",
-                                     amu_end_datetime > '2014-12-28 23:59' ~ "q4")) |> 
-  arrange(amu_end_datetime)
+  mutate(amu_end_quarter = case_when(new_amu_end_datetime <= '2014-12-28 23:59' ~ "q1",
+                                     new_amu_end_datetime > '2014-12-28 23:59' 
+                                     & new_amu_end_datetime <= '2015-03-29 23:59' ~ "q2",
+                                     new_amu_end_datetime > '2015-03-29 23:59' 
+                                     & new_amu_end_datetime <= '2015-06-28 23:59' ~ "q3",
+                                     new_amu_end_datetime > '2014-12-28 23:59' ~ "q4")) |> 
+  arrange(new_amu_end_datetime)
 
 ```
 
@@ -443,7 +456,6 @@ And we can now see that most of the change happened between the third and fourth
 df_amu_stays_c <-
   df_amu_stays_b |> 
   filter(amu_end_quarter == "q1" | amu_end_quarter == "q4")
-
 
 ```
 
@@ -594,7 +606,7 @@ Next, we need to create a dataframe in R by importing data from an .xlsx file fr
 # Step 1 - import the data ------------------------------------------------
 
 df_01 <-
-  read.xlsx("https://www.kurtosis.co.uk/data/inreach_weekly_data.xlsx") |> 
+  read.xlsx("https://www.kurtosis.co.uk/data/04_inreach_weekly_data.xlsx") |> 
   mutate(new_discharge_week = convertToDate(discharge_week)) |> 
   select(new_discharge_week,
          transferred_onwards,
@@ -603,7 +615,7 @@ df_01 <-
 
 ```
 
-Note that we have had to use {readxlsx}'s convertToDate() function to ensure that the **discharge_week** variable (now effectively re-named as the **new_discharge_week** variable) behaves as a date.
+Note that we have had to use {openxlsx}'s convertToDate() function to ensure that the **discharge_week** variable (now effectively re-named as the **new_discharge_week** variable) behaves as a date.
 
 The next thing we need to do is calculate the percentage of patients discharged directly home from the AMU each week, We'll do this by creating an additional variable that we'll call **weekly_percentage**.
 
@@ -655,4 +667,101 @@ second_ucl <- second_mean + (2.66 * second_amr)
 
 ```
 
+Now we will append six of these constants to the **df_01a** dataframe:
+
+```{r message=FALSE, warning=FALSE}
+
+# Step 5 - add the constants to the dataframe -----------------------------
+
+df_01b <-
+  df_01a |> 
+  mutate(first_mean = if_else(new_discharge_week <= '2014-12-22',
+                              first_mean,
+                              NA)) |> 
+  mutate(first_lcl = if_else(new_discharge_week <= '2014-12-22',
+                              first_lcl,
+                              NA)) |> 
+  mutate(first_ucl = if_else(new_discharge_week <= '2014-12-22',
+                              first_ucl,
+                              NA)) |> 
+  mutate(second_mean = if_else(new_discharge_week >= '2015-06-29',
+                              second_mean,
+                              NA)) |> 
+  mutate(second_lcl = if_else(new_discharge_week >= '2015-06-29',
+                             second_lcl,
+                             NA)) |> 
+  mutate(second_ucl = if_else(new_discharge_week >= '2015-06-29',
+                             second_ucl,
+                             NA))
+
+```
+
+
+Finally, we will draw the chart:
+
+```{r message=FALSE, warning=FALSE}
+
+# Step 6 - draw the chart -------------------------------------------------
+
+ggplot(data = df_01b) +
+  annotate("rect", 
+           xmin = as.Date('2014-09-27'), 
+           xmax = as.Date('2014-12-22'), 
+           ymin = first_lcl, 
+           ymax = first_ucl,
+           fill = "darkorange",
+           alpha = 0.05) +
+  annotate("rect", 
+           xmin = as.Date('2015-06-29'), 
+           xmax = as.Date('2015-09-21'), 
+           ymin = second_lcl, 
+           ymax = second_ucl,
+           fill = "blue",
+           alpha = 0.05) +
+  aes(x = new_discharge_week) +
+  geom_line(aes(y = weekly_percentage)) +
+  geom_point(aes(y = weekly_percentage)) +
+  geom_line(aes(y = first_mean),
+            colour = "darkorange",
+            linewidth = 0.5) +
+  geom_line(aes(y = first_lcl),
+            linetype = "dashed",
+            colour = "black") +
+  geom_line(aes(y = first_ucl),
+            linetype = "dashed",
+            colour = "black") +
+  geom_line(aes(y = second_mean),
+            colour = "blue",
+            linewidth = 0.5) +
+  geom_line(aes(y = second_lcl),
+            linetype = "dashed",
+            colour = "black") +
+  geom_line(aes(y = second_ucl),
+            linetype = "dashed",
+            colour = "black") +
+  annotate("text", 
+           x = as.Date('2014-09-29'),
+           y = 0.06, 
+           label = "Autumn 2014 = 28%",
+           size = 2.8,
+           hjust = 0,
+           colour = "darkorange") +
+  annotate("text", 
+           x = as.Date('2015-06-29'),
+           y = 0.49, 
+           label = "Summer 2015 = 34%",
+           size = 2.8,
+           hjust = 0,
+           colour = "blue") +
+  scale_y_continuous(limits = c(0, 0.5),
+                     breaks = seq(0, 0.5, 0.1),
+                     labels = percent) +
+  labs(title = "More patients went home from the Acute Medical Unit",
+       subtitle = "Weekly percentage of direct discharges: 29 Sep 2014 to 27 Sep 2015",
+       x = "",
+       y = "") +
+  theme_classic() +
+  theme(plot.margin = unit(c(0.5,0.5,0,0), "cm"))
+
+```
 
